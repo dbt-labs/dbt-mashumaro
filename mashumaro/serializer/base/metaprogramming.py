@@ -408,6 +408,8 @@ class CodeBuilder:
                 raise UnserializableDataError(
                     f"{ftype} as a field type is not supported by mashumaro"
                 )
+        elif origin_type in (bool, NoneType):
+            return overridden or value_name
         elif issubclass(origin_type, typing.Collection):
             args = getattr(ftype, "__args__", ())
 
@@ -464,6 +466,8 @@ class CodeBuilder:
                             f"for key,value in m.items()}} "
                             f"for m in value.maps]"
                         )
+            elif issubclass(origin_type, str):
+                return overridden or value_name
             elif issubclass(origin_type, typing.Mapping):
                 if ftype is dict:
                     raise UnserializableField(
@@ -489,8 +493,6 @@ class CodeBuilder:
                 return (
                     f"{value_name} if use_bytes else {overridden or specific}"
                 )
-            elif issubclass(origin_type, str):
-                return overridden or value_name
             elif issubclass(origin_type, typing.Sequence):
                 if is_generic(ftype):
                     return (
@@ -506,8 +508,6 @@ class CodeBuilder:
             return overridden or f"int({value_name})"
         elif origin_type is float:
             return overridden or f"float({value_name})"
-        elif origin_type in (bool, NoneType):
-            return overridden or value_name
         elif origin_type in (datetime.datetime, datetime.date, datetime.time):
             if overridden:
                 return f"{value_name} if use_datetime else {overridden}"
@@ -534,7 +534,7 @@ class CodeBuilder:
         elif origin_type is Fraction:
             return overridden or f"str({value_name})"
 
-        raise UnserializableField(fname, ftype, parent)
+        raise UnserializableDataError(f"_unpack_value: fname: {fname}, ftype: {ftype}, parent: {parent}, origin_type: {origin_type}")
 
     def add_unpack_union(self, fname, ftype, parent, variant_types, value_name):
         self.add_line(f'def resolve_union(value):')
@@ -611,6 +611,8 @@ class CodeBuilder:
                 raise UnserializableDataError(
                     f"{ftype} as a field type is not supported by mashumaro"
                 )
+        elif origin_type in (bool, NoneType):
+            return overridden or value_name
         elif issubclass(origin_type, typing.Collection):
             args = getattr(ftype, "__args__", ())
 
@@ -693,6 +695,8 @@ class CodeBuilder:
                             f"for key, value in m.items()}} "
                             f"for m in {value_name}])"
                         )
+            elif issubclass(origin_type, str):
+                return overridden or value_name
             elif issubclass(origin_type, typing.Mapping):
                 if ftype is dict:
                     raise UnserializableField(
@@ -731,8 +735,6 @@ class CodeBuilder:
                         f"decodebytes({value_name}.encode()))"
                     )
                     return overridden or specific
-            elif issubclass(origin_type, str):
-                return overridden or value_name
             elif issubclass(origin_type, typing.Sequence):
                 if is_generic(ftype):
                     return (
@@ -765,8 +767,6 @@ class CodeBuilder:
             return overridden or f"int({value_name})"
         elif origin_type is float:
             return overridden or f"float({value_name})"
-        elif origin_type in (bool, NoneType):
-            return overridden or value_name
         elif origin_type in (datetime.datetime, datetime.date, datetime.time):
             if overridden:
                 return f"{value_name} if use_datetime else {overridden}"
