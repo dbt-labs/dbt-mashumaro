@@ -335,7 +335,7 @@ class CodeBuilder:
         self.add_line("setattr(cls, 'to_dict', to_dict)")
         self.compile()
 
-    def add_pack_union(self, fname, ftype, parent, variant_types, value_name):
+    def add_pack_union(self, fname, ftype, parent, variant_types, value_name, metadata):
         self._add_type_modules(*variant_types)
         self.add_line(f'def resolve_union(value):')
         with self.indent():
@@ -348,7 +348,7 @@ class CodeBuilder:
                 with self.indent():
                     self.add_line('try:')
                     with self.indent():
-                        packed = self._pack_value(fname, variant, parent, value_name)
+                        packed = self._pack_value(fname, variant, parent, value_name, metadata=metadata)
                         self.add_line(f'return {packed}')
                     self.add_line('except (TypeError, AttributeError, ValueError, LookupError) as e:')
                     with self.indent():
@@ -372,7 +372,7 @@ class CodeBuilder:
                     f"__{fname}_serialize",
                     staticmethod(serialize_option),
                 )
-                overridden = f"self.__{fname}_serialize(self.{fname})"
+                return f"self.__{fname}_serialize(self.{fname})"
 
         if is_dataclass(ftype):
             return f"{value_name}.to_dict(use_bytes, use_enum, use_datetime, options)"
@@ -393,9 +393,9 @@ class CodeBuilder:
             elif is_union(ftype):
                 args = getattr(ftype, "__args__", ())
                 if len(args) == 2 and args[1] == NoneType:  # it is Optional
-                    return self._pack_value(fname, args[0], parent)
+                    return self._pack_value(fname, args[0], parent, metadata=metadata)
                 else:
-                    return self.add_pack_union(fname, ftype, parent, args, value_name)
+                    return self.add_pack_union(fname, ftype, parent, args, value_name, metadata)
             elif origin_type is typing.AnyStr:
                 raise UnserializableDataError(
                     "AnyStr is not supported by mashumaro"
@@ -414,7 +414,7 @@ class CodeBuilder:
             args = getattr(ftype, "__args__", ())
 
             def inner_expr(arg_num=0, v_name="value"):
-                return self._pack_value(fname, args[arg_num], parent, v_name)
+                return self._pack_value(fname, args[arg_num], parent, v_name, metadata=metadata)
 
             if issubclass(
                 origin_type,
@@ -536,7 +536,7 @@ class CodeBuilder:
 
         raise UnserializableDataError(f"_unpack_value: fname: {fname}, ftype: {ftype}, parent: {parent}, origin_type: {origin_type}")
 
-    def add_unpack_union(self, fname, ftype, parent, variant_types, value_name):
+    def add_unpack_union(self, fname, ftype, parent, variant_types, value_name, metadata):
         self.add_line(f'def resolve_union(value):')
         with self.indent():
             for variant in variant_types:
@@ -570,7 +570,7 @@ class CodeBuilder:
             deserialize_option = metadata.get("deserialize")
             if callable(deserialize_option):
                 setattr(self.cls, f"__{fname}_deserialize", deserialize_option)
-                overridden = f"cls.__{fname}_deserialize({value_name})"
+                return f"cls.__{fname}_deserialize({value_name})"
 
         if is_dataclass(ftype):
             return (
@@ -598,7 +598,7 @@ class CodeBuilder:
                         fname, args[0], parent, metadata=metadata
                     )
                 else:
-                    return self.add_unpack_union(fname, ftype, parent, args, value_name)
+                    return self.add_unpack_union(fname, ftype, parent, args, value_name, metadata)
             elif origin_type is typing.AnyStr:
                 raise UnserializableDataError(
                     "AnyStr is not supported by mashumaro"
