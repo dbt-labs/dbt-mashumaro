@@ -1,5 +1,16 @@
 import decimal
+from typing import TypeVar, Generic
 
+TV = TypeVar("TV")
+
+class SerializableEncoder(Generic[TV]):
+    @classmethod
+    def _serialize(cls, value):
+        raise NotImplementedError
+
+    @classmethod
+    def _deserialize(cls, value):
+        raise NotImplementedError
 
 class SerializableType:
     def _serialize(self):

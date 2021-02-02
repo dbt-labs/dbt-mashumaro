@@ -1,11 +1,14 @@
-from typing import Any, Dict, Mapping, Type, TypeVar, Optional
+from typing import Any, Dict, Mapping, Type, TypeVar, Optional, ClassVar
 
 from mashumaro.serializer.base.metaprogramming import CodeBuilder
+from mashumaro.types import SerializableEncoder
 
 T = TypeVar("T", bound="DataClassDictMixin")
 
 
 class DataClassDictMixin:
+    _serializable_encoders: ClassVar[Dict[Type, SerializableEncoder]] = {}
+
     def __init_subclass__(cls: Type[T], **kwargs):
         builder = CodeBuilder(cls)
         exc = None
